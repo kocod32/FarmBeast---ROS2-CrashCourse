@@ -4,15 +4,14 @@ import rclpy
 from rclpy.node import Node  
   
   
-class TemplateNode(Node):  
+class XXXXXXXXX(Node):  
     def __init__(self):  
-        super().__init__("template_node")  
-        self.counter_ = 0  
+        super().__init__("XXXXXXXXX")  
     
   
 def main(args=None):  
     rclpy.init(args=args)  
-    node = TemplateNode()  
+    node = XXXXXXXXX()  
     rclpy.spin(node)  
     rclpy.shutdown()  
   
