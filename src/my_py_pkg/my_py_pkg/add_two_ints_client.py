@@ -1,45 +1,48 @@
 #!/usr/bin/env python3
 
 import rclpy
-from rclpy.node import Node
+from rclpy.node import Node 
 from example_interfaces.srv import AddTwoInts
+from functools import partial
 
-
-class AddTwoIntsClientNode(Node):
+class AddTwoIntsClient(Node):  
     def __init__(self):
         super().__init__("add_two_ints_client")
+        # want to connect to any server providing the service add_two_ints
+        self.client_ = self.create_client(AddTwoInts, "add_two_ints")
+        
+    def call_add_two_ints(self, a, b):
+        while not self.client_.wait_for_service(1.0):
+            self.get_logger().warn("Waiting for server Add two ints...")
+        
+        #create a request
+        request = AddTwoInts.Request()
+        request.a = a
+        request.b = b
 
-        self.client_ = self.create_client(AddTwoInts, "/add_two_ints")
-
-        while not self.client_.wait_for_service(timeout_sec=1.0):
-            self.get_logger().info("Service not available, waiting again...")
-
-        self.request_ = AddTwoInts.Request()
-        self.request_.a = 5
-        self.request_.b = 7
-
-        self.future_ = self.client_.call_async(self.request_)
-        self.future_.add_done_callback(self.response_callback)
-
-        self.get_logger().info(
-            f"Sent request: a={self.request_.a}, b={self.request_.b}"
-        )
-
-    def response_callback(self, future):
-        try:
-            response = future.result()
-            self.get_logger().info(f"Result: {response.sum}")
-        except Exception as e:
-            self.get_logger().error(f"Service call failed: {e}")
-
-        rclpy.shutdown()
-
+        #send a request async
+        future = self.client_.call_async(request) 
+        # we wont use spin as we do in no oop version
+        # registers a callback
+            #if you want to add extra arguments, need to add partial
+        future.add_done_callback(partial(self.callback_call_add_two_ints, request=request))
+        # so we can get it in the callback_call_add_two_ints method
+        
+    def callback_call_add_two_ints(self, future, request):
+        response = future.result()
+        self.get_logger().info(f"{str(request.a)} + {str(request.b)} = {str(response.sum)}")
+            
 
 def main(args=None):
     rclpy.init(args=args)
-    node = AddTwoIntsClientNode()
-    rclpy.spin(node)
+    node = AddTwoIntsClient()
 
+    node.call_add_two_ints(2,7)
+    node.call_add_two_ints(21,90)
+    node.call_add_two_ints(2232,1521)
+
+    rclpy.spin(node)
+    rclpy.shutdown()
 
 if __name__ == "__main__":
     main()
